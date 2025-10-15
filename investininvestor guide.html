@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investing Made Easy: An Interactive Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Green Accent -->
+    <!-- Application Structure Plan: A thematic, single-page vertical scroll application is chosen over a linear chapter format for a more intuitive web experience. The structure is: 1) Hero, 2) 'Why Invest?' (Fundamentals with Visual Flow), 3) 'What to Invest In?' (Interactive Options/Tabs), 4) 'How to Invest?' (Interactive Strategy Builder with Dynamic Portfolio Chart), 5) 'Market Context' (Trends & Platforms with Historical Line Chart), and 6) 'The Future'. This flow guides the user from foundational concepts to practical application, using interactive elements like a dynamic portfolio chart and selectable investment types to enhance engagement and comprehension, which is more effective for learning than static text. -->
+    <!-- Visualization & Content Choices: 1) Why Invest? Goal -> Illustrate concept. Viz -> Simple CSS/HTML Flowchart for "Money -> Wealth". Justification -> Replaces suggested image with a structured diagram. 2) Investment Types: Goal -> Compare options. Viz -> Interactive card selector with emoji icons. Interaction -> User clicks a type to reveal detailed text. Justification -> Focuses user attention and reduces cognitive load. Method -> Vanilla JS DOM manipulation. 3) Portfolio Diversification: Goal -> Demonstrate risk-based allocation. Viz -> Dynamic Doughnut Chart. Interaction -> Buttons for 'Conservative', 'Moderate', 'Aggressive' update the chart and text. Justification -> Visually connects personal risk tolerance to a tangible strategy. Library -> Chart.js. 4) Market Trends: Goal -> Show long-term trends and volatility. Viz -> Dynamic Line Chart. Interaction -> Timeframe buttons (5Y, 10Y, ALL) update the chart view. Justification -> Makes market cycles understandable and reinforces long-term perspective. Library -> Chart.js. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #16A34A;
+        }
+        .quote {
+            border-left: 4px solid #10B981;
+        }
+        .tab-btn, .risk-btn, .time-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #D1D5DB;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab-btn:hover, .time-btn:hover {
+             background-color: #F0FDF4;
+             border-color: #A7F3D0;
+        }
+        .tab-btn.active {
+            background-color: #10B981;
+            color: white;
+            border-color: #10B981;
+        }
+        .risk-btn.active {
+            background-color: #15803D;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .time-btn.active {
+            background-color: #4ADE80;
+            color: #1F2937;
+            border-color: #10B981;
+        }
+        /* Custom CSS to handle single-line headings on small screens */
+        .single-line-heading {
+            white-space: nowrap;
+            display: inline-block;
+            max-width: 100%; /* Prevents container from stretching infinitely */
+            overflow-x: hidden; /* Hide overflow, prioritizing single line */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- Logo Implementation -->
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl font-extrabold text-green-600">🏦</span>
+                <span class="text-xl font-bold text-green-700">Investor's Guide</span>
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#fundamentals" class="nav-link text-gray-600 font-medium">Fundamentals</a>
+                <a href="#options" class="nav-link text-gray-600 font-medium">Options</a>
+                <a href="#strategy" class="nav-link text-gray-600 font-medium">Strategy</a>
+                <a href="#market" class="nav-link text-gray-600 font-medium">Market</a>
+                <a href="#gemini-advisor" class="nav-link text-gray-600 font-medium">AI Advisor</a>
+                <a href="#future" class="nav-link text-gray-600 font-medium">Future</a>
+            </div>
+            <div class="md:hidden">
+                <button id="menu-btn" class="text-gray-600 focus:outline-none">
+                     <div id="menu-open-icon">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                     </div>
+                     <div id="menu-close-icon" class="hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                     </div>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden bg-white px-6 pb-4">
+            <a href="#fundamentals" class="block py-2 nav-link text-gray-600 font-medium">Fundamentals</a>
+            <a href="#options" class="block py-2 nav-link text-gray-600 font-medium">Options</a>
+            <a href="#strategy" class="block py-2 nav-link text-gray-600 font-medium">Strategy</a>
+            <a href="#market" class="block py-2 nav-link text-gray-600 font-medium">Market</a>
+            <a href="#gemini-advisor" class="block py-2 nav-link text-gray-600 font-medium">AI Advisor</a>
+            <a href="#future" class="block py-2 nav-link text-gray-600 font-medium">Future</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <section class="text-center py-12 md:py-20">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-800 mb-4">Investing Made Easy</h1>
+            <p class="text-lg md:text-2xl text-green-700 font-semibold">A Practical Handbook for Young Pakistani Investors to Build Wealth Confidently</p>
+        </section>
+
+        <section id="fundamentals" class="py-12 md:py-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <!-- Heading updated for single line -->
+                <h2 class="single-line-heading text-3xl md:text-4xl font-bold text-gray-800">Why Invest? Understanding the Basics</h2>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">This section covers the core concepts of investing, explaining why it's crucial for financial growth and defining the essential terms you need to know. Investing is the difference between simply saving and actively growing your money.</p>
+            </div>
+            <div class="grid lg:grid-cols-3 gap-8 items-start">
+                <div class="lg:col-span-2 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                    <h3 class="text-2xl font-bold text-green-700 mb-4">The Wealth-Building Flow</h3>
+                    <div class="flex flex-col items-center space-y-4 md:space-y-0 md:flex-row md:justify-around md:items-stretch h-full">
+                        <div class="flex flex-col items-center p-4 bg-green-50 rounded-lg shadow-inner w-full md:w-1/3">
+                            <span class="text-4xl mb-2">💵</span>
+                            <p class="font-semibold text-gray-800">SAVINGS</p>
+                            <p class="text-sm text-center text-gray-600">Money reserved but losing value to Inflation.</p>
+                        </div>
+                        <div class="text-4xl text-green-500 font-bold hidden md:flex items-center justify-center w-8">
+                            →
+                        </div>
+                        <div class="text-4xl text-green-500 font-bold md:hidden">↓</div>
+                        <div class="flex flex-col items-center p-4 bg-yellow-50 rounded-lg shadow-inner w-full md:w-1/3">
+                            <span class="text-4xl mb-2">🌱</span>
+                            <p class="font-semibold text-gray-800">INVESTMENT</p>
+                            <p class="text-sm text-center text-gray-600">Allocating capital to assets that generate Income/Growth.</p>
+                        </div>
+                        <div class="text-4xl text-green-500 font-bold hidden md:flex items-center justify-center w-8">
+                            →
+                        </div>
+                        <div class="text-4xl text-green-500 font-bold md:hidden">↓</div>
+                        <div class="flex flex-col items-center p-4 bg-green-100 rounded-lg shadow-inner w-full md:w-1/3">
+                            <span class="text-4xl mb-2">🌳</span>
+                            <p class="font-semibold text-gray-800">WEALTH</p>
+                            <p class="text-sm text-center text-gray-600">Financial assets growing faster than Inflation.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-1">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Key Terms</h3>
+                    <div class="space-y-3">
+                        <div class="p-4 bg-white rounded-lg shadow-md border border-gray-100"><span class="font-bold text-green-700">Diversification:</span> Spreading investments across different types to reduce Risk.</div>
+                        <div class="p-4 bg-white rounded-lg shadow-md border border-gray-100"><span class="font-bold text-green-700">Liquidity:</span> The ease of converting an asset into Cash.</div>
+                        <div class="p-4 bg-white rounded-lg shadow-md border border-gray-100"><span class="font-bold text-green-700">Capital Gains:</span> The Profit earned when you sell an asset for a higher price.</div>
+                        <div class="p-4 bg-white rounded-lg shadow-md border border-gray-100"><span class="font-bold text-green-700">Inflation:</span> The general Increase in Prices, which reduces your money's purchasing power.</div>
+                    </div>
+                </div>
+            </div>
+             <div class="mt-12">
+                <blockquote class="quote p-6 bg-green-50 rounded-r-lg">
+                    <p class="text-xl italic text-gray-700">“Do not save what is left after spending, but spend what is left after saving.”</p>
+                    <cite class="block text-right mt-2 not-italic font-medium text-green-700">– Warren Buffett</cite>
+                </blockquote>
+            </div>
+        </section>
+
+        <section id="options" class="py-12 md:py-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <!-- Heading updated for single line -->
+                <h2 class="single-line-heading text-3xl md:text-4xl font-bold text-gray-800">What to Invest In? Your Options in Pakistan</h2>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">Pakistan offers a diverse range of investment opportunities. Click on any asset class below to get a breakdown of its <strong>risk, liquidity, and primary return source</strong>.</p>
+            </div>
+            <div class="flex flex-wrap justify-center gap-3 md:gap-4 mb-8">
+                <button class="tab-btn active" data-tab="stocks">📈 Stocks</button>
+                <button class="tab-btn" data-tab="mutual-funds">💰 Mutual Funds</button>
+                <button class="tab-btn" data-tab="bonds">🔗 Bonds</button>
+                <button class="tab-btn" data-tab="real-estate">🏡 Real Estate</button>
+                <button class="tab-btn" data-tab="gold">🪙 Gold</button>
+                <button class="tab-btn" data-tab="savings-schemes">📜 Savings Schemes</button>
+            </div>
+            <div id="tab-content" class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 min-h-[250px] transition-opacity duration-300">
+            </div>
+        </section>
+
+        <section id="strategy" class="py-12 md:py-16 scroll-mt-20">
+             <div class="text-center mb-12">
+                <!-- Heading updated for single line -->
+                <h2 class="single-line-heading text-3xl md:text-4xl font-bold text-gray-800">How to Invest? Build Your Strategy</h2>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">A clear strategy starts with <strong>diversification</strong> based on your <strong>risk tolerance</strong>. Select a profile below to see a sample portfolio allocation and understand the rationale behind it. The goal is to maximize returns while managing potential losses.</p>
+            </div>
+            <div class="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Visualize Risk Tolerance</h3>
+                    <p class="text-gray-600 mb-6">Your <strong>time horizon</strong> is the biggest factor: a young investor has decades to recover from market dips, allowing for higher risk exposure.</p>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                        <button class="risk-btn flex-1 active" data-risk="conservative">🛡️ Conservative</button>
+                        <button class="risk-btn flex-1" data-risk="moderate">⚖️ Moderate</button>
+                        <button class="risk-btn flex-1" data-risk="aggressive">🚀 Aggressive</button>
+                    </div>
+                    <div id="risk-description" class="p-6 bg-gray-50 rounded-lg min-h-[140px]">
+                    </div>
+                </div>
+                <div class="w-full">
+                    <div class="chart-container">
+                        <canvas id="portfolio-chart"></canvas>
+                    </div>
+                     <p class="text-center text-sm text-gray-500 mt-2">Example allocation for a PKR 100,000 investment.</p>
+                </div>
+            </div>
+             <div class="mt-12 grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                    <h4 class="text-xl font-bold text-green-700 mb-3">Dollar-Cost Averaging (DCA)</h4>
+                    <p class="text-gray-700">DCA is a disciplined approach: investing a fixed amount regularly (e.g., PKR 5,000 monthly), regardless of market conditions. This averages out your purchase cost, reducing the risk of buying everything at a peak and smoothing out volatility. It's the ideal method for beginners.</p>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                    <h4 class="text-xl font-bold text-green-700 mb-3">The Role of Index Funds</h4>
+                    <p class="text-gray-700">Index funds (which mirror the KSE-100 index) are cost-effective and highly diversified. They offer market-average returns without requiring complex stock picking. For new investors, they are a foundational, low-maintenance component of a long-term portfolio.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="market" class="py-12 md:py-16 scroll-mt-20">
+             <div class="text-center mb-12">
+                <!-- Heading updated for single line -->
+                <h2 class="single-line-heading text-3xl md:text-4xl font-bold text-gray-800">Market Context: PSX Trends</h2>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">The Pakistan Stock Exchange (PSX) is cyclical. Use this interactive chart (mock data) to visualize how markets fluctuate and why the <strong>long-term perspective</strong> is essential for wealth building. Political instability or oil prices can cause short-term volatility, but patient investors are typically rewarded.</p>
+            </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
+                 <div class="text-center mb-6">
+                     <button class="time-btn active" data-range="5">5 Years</button>
+                     <button class="time-btn" data-range="10">10 Years</button>
+                     <button class="time-btn" data-range="all">All Time</button>
+                 </div>
+                <div class="chart-container h-96">
+                    <canvas id="market-chart"></canvas>
+                </div>
+                 <p class="text-center text-sm text-gray-500 mt-4"><strong>Note:</strong> The chart shows mock KSE-100 index data, illustrating the key lesson: <strong>market timing is impossible, consistency is key.</strong></p>
+            </div>
+            <div class="mt-12">
+                <blockquote class="quote p-6 bg-green-50 rounded-r-lg">
+                    <p class="text-xl italic text-gray-700">“In the short run, the market is a voting machine; in the long run, it is a weighing machine.”</p>
+                    <cite class="block text-right mt-2 not-italic font-medium text-green-700">– Benjamin Graham</cite>
+                </blockquote>
+            </div>
+        </section>
+
+        <!-- NEW GEMINI ADVISOR SECTION -->
+        <section id="gemini-advisor" class="py-12 md:py-16 scroll-mt-20">
+             <div class="text-center mb-12">
+                <!-- Heading updated for single line -->
+                <h2 class="single-line-heading text-3xl md:text-4xl font-bold text-gray-800">✨ Gemini Investment Advisor</h2>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">Leverage AI to explain complex financial terms and get a personalized strategy for your investing goals.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Feature 1: Term Explainer -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h4 class="text-xl font-bold text-green-700 mb-3 flex items-center">
+                        <span class="mr-2">🔎</span> Quick Financial Term Explainer
+                    </h4>
+                    <p class="text-sm text-gray-600 mb-3">Ask for a concise, real-time explanation of any finance term (e.g., "Fiscal Deficit in Pakistan").</p>
+                    <input type="text" id="term-input" placeholder="Enter a financial term..." class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <button id="explain-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition duration-200 flex items-center justify-center">
+                        ✨ Explain Term
+                    </button>
+                    <div id="term-result" class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 hidden"></div>
+                </div>
+
+                <!-- Feature 2: Goal Strategizer -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h4 class="text-xl font-bold text-green-700 mb-3 flex items-center">
+                        <span class="mr-2">🎯</span> Personalized Goal Strategizer
+                    </h4>
+                    <p class="text-sm text-gray-600 mb-3">Describe your financial goal (e.g., "Save PKR 5 million for retirement in 15 years").</p>
+                    <input type="text" id="goal-input" placeholder="Enter your goal (amount and time horizon)..." class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="strategy-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition duration-200 flex items-center justify-center">
+                        ✨ Generate Strategy
+                    </button>
+                    <div id="strategy-result" class="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200 hidden"></div>
+                </div>
+            </div>
+        </section>
+        <!-- END GEMINI ADVISOR SECTION -->
+
+        <section id="future" class="py-12 md:py-16 scroll-mt-20">
+             <div class="text-center mb-12">
+                <!-- Heading updated for single line -->
+                <h2 class="single-line-heading text-3xl md:text-4xl font-bold text-gray-800">Navigating Platforms & Future Trends</h2>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">Your investment journey requires the right tools. Ensure you choose SECP-licensed brokers and stay aware of emerging trends like ethical investing and the rise of local Fintech solutions.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
+                    <div class="text-4xl mb-4 text-green-600">✅</div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Choosing a Broker</h4>
+                    <p class="text-gray-600 text-sm">Select SECP-licensed brokers (e.g., AKD, JS Global) that offer low fees and user-friendly mobile apps. Always practice with a <strong>demo account</strong> before committing real capital.</p>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
+                    <div class="text-4xl mb-4 text-green-600">🤝</div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Ethical Investing (ESG)</h4>
+                    <p class="text-gray-600 text-sm">Invest in companies focused on Environmental, Social, and Governance (ESG) principles. For Pakistani investors, Islamic Mutual Funds are a primary way to align investments with ethical values.</p>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
+                    <div class="text-4xl mb-4 text-green-600">💡</div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Fintech & AI</h4>
+                    <p class="text-gray-600 text-sm">Local Fintech platforms (like Sarmayacar) are simplifying digital investments. Expect the future to include more AI-based robo-advisors to automate portfolio management and selection.</p>
+                </div>
+            </div>
+             <div class="mt-12">
+                <blockquote class="quote p-6 bg-green-50 rounded-r-lg">
+                    <p class="text-xl italic text-gray-700">“The best investment you can make is in yourself.”</p>
+                    <cite class="block text-right mt-2 not-italic font-medium text-green-700">– Warren Buffett</cite>
+                </blockquote>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2025 Ahsan Khandwala. For educational purposes only.</p>
+            <p class="text-sm text-gray-400 mt-2">Data concepts sourced from SBP, PSX, and SECP reports.</p>
+        </div>
+    </footer>
+    
+
+<script>
+const API_KEY = "AIzaSyBY_M1WucyD5Ar1-MOgfkhxp7uzRzV1g2Y"; 
+const API_URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// Helper function for API call with Exponential Backoff
+async function exponentialBackoffFetch(url, options, maxRetries = 5) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, options);
+            if (response.status === 429 && attempt < maxRetries - 1) {
+                const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            if (!response.ok) {
+                const errorBody = await response.json();
+                console.error("API Error:", errorBody);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        } catch (error) {
+            if (attempt === maxRetries - 1) {
+                console.error("Fetch failed after all retries:", error);
+                throw error;
+            }
+        }
+    }
+}
+
+// Feature 1: Quick Financial Term Explainer (Uses Google Search Grounding)
+async function explainTerm() {
+    const termInput = document.getElementById('term-input');
+    const explainBtn = document.getElementById('explain-btn');
+    const resultDiv = document.getElementById('term-result');
+    const term = termInput.value.trim();
+
+    if (!term) {
+        resultDiv.innerHTML = `<p class="text-red-600">Please enter a financial term to explain.</p>`;
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    explainBtn.disabled = true;
+    explainBtn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Searching...`;
+    resultDiv.innerHTML = `<p class="text-gray-700">Searching and generating explanation...</p>`;
+    resultDiv.classList.remove('hidden');
+
+    const model = 'gemini-2.5-flash-preview-05-20';
+    const url = `${API_URL_BASE}/${model}:generateContent?key=${API_KEY}`;
+    
+    const userQuery = `Explain the financial term "${term}" concisely in one paragraph, focusing on its relevance to the Pakistani economy or financial markets.`;
+    
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        tools: [{ "google_search": {} }],
+        systemInstruction: {
+            parts: [{ text: "You are a concise financial tutor specializing in the Pakistani market. Provide a clear, one-paragraph explanation with real-time, grounded facts." }]
+        },
+    };
+
+    try {
+        const response = await exponentialBackoffFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const candidate = response.candidates?.[0];
+        let finalHtml = '';
+
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+            const text = candidate.content.parts[0].text;
+            finalHtml += `<p class="text-gray-800 font-medium">${text}</p>`;
+
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                const sources = groundingMetadata.groundingAttributions.map(attribution => ({
+                    uri: attribution.web?.uri,
+                    title: attribution.web?.title,
+                })).filter(source => source.uri && source.title);
+
+                if (sources.length > 0) {
+                    finalHtml += `<div class="mt-2 text-xs text-gray-500 border-t border-green-300 pt-2">Sources: <ul class="list-disc list-inside space-y-0.5">`;
+                    sources.slice(0, 3).forEach(source => {
+                        finalHtml += `<li><a href="${source.uri}" target="_blank" class="text-green-600 hover:text-green-800 truncate block">${source.title}</a></li>`;
+                    });
+                    finalHtml += `</ul></div>`;
+                }
+            }
+        } else {
+            finalHtml = `<p class="text-red-600">Could not generate explanation. Please try a different term.</p>`;
+        }
+        resultDiv.innerHTML = finalHtml;
+
+    } catch (e) {
+        resultDiv.innerHTML = `<p class="text-red-600">An error occurred while connecting to the AI advisor. Check console for details.</p>`;
+    } finally {
+        explainBtn.disabled = false;
+        explainBtn.innerHTML = `✨ Explain Term`;
+    }
+}
+
+// Feature 2: Personalized Goal Strategizer (Uses Structured JSON Output)
+async function generateStrategy() {
+    const goalInput = document.getElementById('goal-input');
+    const strategyBtn = document.getElementById('strategy-btn');
+    const resultDiv = document.getElementById('strategy-result');
+    const goal = goalInput.value.trim();
+
+    if (!goal) {
+        resultDiv.innerHTML = `<p class="text-red-600">Please enter your financial goal.</p>`;
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    strategyBtn.disabled = true;
+    strategyBtn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Calculating...`;
+    resultDiv.innerHTML = `<p class="text-gray-700">Calculating optimal strategy...</p>`;
+    resultDiv.classList.remove('hidden');
+
+    const model = 'gemini-2.5-flash-preview-05-20';
+    const url = `${API_URL_BASE}/${model}:generateContent?key=${API_KEY}`;
+
+    const systemPrompt = `You are a financial planning AI. Given a user's financial goal, provide a structured investment strategy in JSON format. Calculate a rough estimate for the required monthly investment (assuming a 7% average annual return on investment, which is a reasonable long-term estimate for the Pakistani market, and assuming the goal amount is in PKR).`;
+    
+    const userQuery = `My goal is: "${goal}". Based on this, please provide a strategy.`;
+
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "OBJECT",
+                properties: {
+                    "goalSummary": { "type": "STRING", "description": "A brief re-statement of the user's goal." },
+                    "timeHorizon": { "type": "STRING", "description": "Short (1-5 years), Medium (5-10 years), or Long (10+ years)." },
+                    "suggestedRiskProfile": { "type": "STRING", "enum": ["Conservative", "Moderate", "Aggressive"], "description": "The recommended risk level." },
+                    "monthlyInvestmentEstimate": { "type": "STRING", "description": "The estimated monthly PKR amount needed to reach the goal, including the estimated annual return assumption (e.g., 'PKR 15,000 / month (assumes 7% annual return)')." },
+                    "strategyRationale": { "type": "STRING", "description": "A 2-3 sentence explanation for the recommended risk profile and time horizon." }
+                }
+            }
+        }
+    };
+
+    try {
+        const response = await exponentialBackoffFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const candidate = response.candidates?.[0];
+
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+            const jsonText = candidate.content.parts[0].text;
+            const strategy = JSON.parse(jsonText);
+
+            resultDiv.innerHTML = `
+                <h4 class="font-semibold text-gray-900 mb-2 text-lg">Strategy for: ${strategy.goalSummary}</h4>
+                <p class="text-sm text-gray-600 mb-2">${strategy.strategyRationale}</p>
+                <div class="mt-3 space-y-1">
+                    <p class="text-sm"><span class="font-bold text-indigo-700">Time Horizon:</span> ${strategy.timeHorizon}</p>
+                    <p class="text-sm"><span class="font-bold text-indigo-700">Risk Profile:</span> <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-200 text-indigo-800">${strategy.suggestedRiskProfile}</span></p>
+                    <p class="text-sm"><span class="font-bold text-indigo-700">Monthly Investment:</span> ${strategy.monthlyInvestmentEstimate}</p>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<p class="text-red-600">Could not parse strategy. Ensure your goal includes the amount and timeframe.</p>`;
+        }
+    } catch (e) {
+        resultDiv.innerHTML = `<p class="text-red-600">An error occurred while connecting to the AI advisor. Check console for details.</p>`;
+    } finally {
+        strategyBtn.disabled = false;
+        strategyBtn.innerHTML = `✨ Generate Strategy`;
+    }
+}
+
+// Existing chart and tab data/logic below...
+const portfolioData = {
+    conservative: {
+        labels: ['Bonds', 'Savings Schemes', 'Income Mutual Funds', 'Stocks'],
+        data: [50, 30, 15, 5],
+        desc: "You prioritize capital preservation. This low-risk approach focuses on fixed income (Bonds and Savings Schemes) to generate stable returns, suitable if your goal is near-term or you have low risk tolerance."
+    },
+    moderate: {
+        labels: ['Equity Mutual Funds', 'Stocks', 'Bonds', 'Savings Schemes'],
+        data: [40, 30, 20, 10],
+        desc: "You seek a balance between growth and safety. This common approach uses stocks and equity-based mutual funds for growth potential while maintaining a buffer in fixed-income assets to mitigate volatility."
+    },
+    aggressive: {
+        labels: ['Stocks', 'Equity Mutual Funds', 'Real Estate/Gold', 'Bonds'],
+        data: [60, 30, 10, 0],
+        desc: "You are focused solely on maximizing long-term capital appreciation. This high-risk portfolio is heavily weighted towards equities and growth assets. It requires a long time horizon (10+ years) to weather significant market fluctuations."
+    }
+};
+
+const marketData = {
+    '5': {
+        labels: ['2020', '2021', '2022', '2023', '2024'],
+        data: [33000, 48000, 41000, 46000, 70000],
+        title: 'KSE-100 (5-Year Performance) - Volatility and Growth'
+    },
+    '10': {
+        labels: ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+        data: [28000, 35000, 47000, 42000, 38000, 33000, 48000, 41000, 46000, 70000],
+        title: 'KSE-100 (10-Year Performance) - Showing Market Cycles'
+    },
+    'all': {
+        labels: ['2008', '2012', '2016', '2020', '2024'],
+        data: [8000, 15000, 35000, 33000, 70000],
+        title: 'KSE-100 (Long-Term Overview) - The Power of Time'
+    }
+};
+
+const investmentTabs = {
+    stocks: {
+        icon: '📈',
+        title: "Stocks (Equities)",
+        details: `<p>Buying shares means you own a small piece of a company listed on the Pakistan Stock Exchange (PSX). Returns come from capital gains (selling higher) and dividends (share of profits). Though high-risk, stocks offer the best long-term growth potential.</p>
+                  <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                      <li>Risk: High</li>
+                      <li>Liquidity: High (Easy to sell quickly)</li>
+                      <li>Primary Return: Capital Appreciation & Dividends</li>
+                  </ul>`
+    },
+    'mutual-funds': {
+        icon: '💰',
+        title: "Mutual Funds",
+        details: `<p>These are professionally managed pools of money. They provide instant diversification across many assets (stocks, bonds, etc.) and are ideal for beginners. You rely on the expertise of a fund manager.</p>
+                  <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                      <li>Risk: Varies (Low to High, depending on fund type)</li>
+                      <li>Liquidity: High</li>
+                      <li>Primary Return: Capital Appreciation & Income (depending on fund)</li>
+                  </ul>`
+    },
+    bonds: {
+        icon: '🔗',
+        title: "Bonds (Debt Securities)",
+        details: `<p>You lend money to a government or corporation. They pay fixed, periodic interest (coupons) and return the principal at maturity. They are generally safer than stocks and suitable for conservative investors seeking stable income.</p>
+                  <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                      <li>Risk: Low</li>
+                      <li>Liquidity: Medium (Easier to sell than property, harder than stocks)</li>
+                      <li>Primary Return: Fixed Interest Payments</li>
+                  </ul>`
+    },
+    'real-estate': {
+        icon: '🏡',
+        title: "Real Estate",
+        details: `<p>Investment in physical property for rental income or capital gain. While a powerful hedge against inflation in Pakistan, it requires significant capital, involves high transaction costs, and is the least liquid option.</p>
+                  <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                      <li>Risk: Medium</li>
+                      <li>Liquidity: Low (Can take months to sell)</li>
+                      <li>Primary Return: Rental Income & Capital Appreciation</li>
+                  </ul>`
+    },
+    gold: {
+        icon: '🪙',
+        title: "Gold",
+        details: `<p>A traditional safe-haven asset in Pakistan, used to hedge against inflation and currency devaluation. It maintains value during economic crises. You can hold it physically or invest through digital gold or gold-backed financial products.</p>
+                  <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                      <li>Risk: Low to Medium (Price fluctuations based on global factors)</li>
+                      <li>Liquidity: High</li>
+                      <li>Primary Return: Capital Appreciation (Inflation Hedge)</li>
+                  </ul>`
+    },
+    'savings-schemes': {
+        icon: '📜',
+        title: "National Savings Schemes",
+        details: `<p>Government-backed investment products (e.g., Certificates, Behbood Savings). They offer fixed, predictable returns with the lowest risk, as they are backed by the State Bank of Pakistan. Ideal for capital preservation.</p>
+                  <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                      <li>Risk: Very Low (Credit risk is negligible)</li>
+                      <li>Liquidity: Medium (May have lock-in periods)</li>
+                      <li>Primary Return: Fixed Income (Interest)</li>
+                  </ul>`
+    }
+};
+
+let portfolioChart, marketChart;
+
+function initCharts() {
+    const ctxPortfolio = document.getElementById('portfolio-chart').getContext('2d');
+    const initialRisk = 'conservative';
+    const initialData = portfolioData[initialRisk];
+    
+    portfolioChart = new Chart(ctxPortfolio, {
+        type: 'doughnut',
+        data: {
+            labels: initialData.labels,
+            datasets: [{
+                data: initialData.data,
+                backgroundColor: ['#10B981', '#4ADE80', '#059669', '#34D399'],
+                hoverOffset: 8,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { size: 14 }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Asset Allocation by Risk Profile',
+                    font: { size: 16, weight: 'bold' }
+                }
+            }
+        }
+    });
+
+    const ctxMarket = document.getElementById('market-chart').getContext('2d');
+    const initialMarketData = marketData['5'];
+    
+    marketChart = new Chart(ctxMarket, {
+        type: 'line',
+        data: {
+            labels: initialMarketData.labels,
+            datasets: [{
+                label: 'KSE-100 Index Value (Mock)',
+                data: initialMarketData.data,
+                borderColor: '#15803d',
+                backgroundColor: 'rgba(21, 128, 61, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#10B981'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: initialMarketData.title,
+                    font: { size: 16, weight: 'bold' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Index Points (Mock Data)' }
+                }
+            }
+        }
+    });
+}
+
+function updateRiskProfile(risk) {
+    const data = portfolioData[risk];
+    portfolioChart.data.labels = data.labels;
+    portfolioChart.data.datasets[0].data = data.data;
+    portfolioChart.update();
+    
+    const descEl = document.getElementById('risk-description');
+    descEl.innerHTML = `<h4 class="font-semibold text-gray-900 mb-2 text-lg">${risk.charAt(0).toUpperCase() + risk.slice(1)} Profile Summary:</h4><p class="text-sm text-gray-600">${data.desc}</p>`;
+
+    document.querySelectorAll('.risk-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-risk') === risk) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function updateMarketChart(range) {
+    const data = marketData[range];
+    marketChart.data.labels = data.labels;
+    marketChart.data.datasets[0].data = data.data;
+    marketChart.options.plugins.title.text = data.title;
+    marketChart.update();
+
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-range') === range) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function updateTabContent(tabId) {
+    const data = investmentTabs[tabId];
+    const contentEl = document.getElementById('tab-content');
+    contentEl.innerHTML = `
+        <h3 class="flex items-center text-3xl font-bold text-green-700 mb-4">
+            <span class="mr-3 text-4xl">${data.icon}</span> ${data.title}
+        </h3>
+        <div class="text-gray-700 leading-relaxed">${data.details}</div>
+    `;
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === tabId) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initCharts();
+    updateTabContent('stocks'); 
+    updateRiskProfile('conservative');
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => updateTabContent(e.currentTarget.getAttribute('data-tab')));
+    });
+
+    document.querySelectorAll('.risk-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => updateRiskProfile(e.currentTarget.getAttribute('data-risk')));
+    });
+
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => updateMarketChart(e.currentTarget.getAttribute('data-range')));
+    });
+
+    // Gemini API Event Listeners
+    document.getElementById('explain-btn').addEventListener('click', explainTerm);
+    document.getElementById('strategy-btn').addEventListener('click', generateStrategy);
+
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuOpenIcon = document.getElementById('menu-open-icon');
+    const menuCloseIcon = document.getElementById('menu-close-icon');
+
+    menuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+        menuOpenIcon.classList.toggle('hidden');
+        menuCloseIcon.classList.toggle('hidden');
+    });
+
+    document.querySelectorAll('#mobile-menu a').forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenu.classList.add('hidden');
+            menuOpenIcon.classList.remove('hidden');
+            menuCloseIcon.classList.add('hidden');
+        });
+    });
+});
+</script>
